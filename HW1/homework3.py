@@ -91,7 +91,7 @@ def distance(start, end):
 def boundaryTest(point):
     x,y,z = grid_info['size']
     a,b,c = point
-    return a>=x or b>=y or c>=z
+    return a>=x or b>=y or c>=z or a<0 or b<0 or c<0
     
 def bfs_search():
     initPoint = grid_info['entrance']
