@@ -56,7 +56,7 @@ if __name__ == "__main__":
     player_two = RandomPlayer()
     print(time.time() - start)
     print("玩家创建完毕")
-    NUM = 500000
+    NUM = 10
     battle(my_player, player_two, NUM)
     #battle(player_two, my_player, NUM)
     

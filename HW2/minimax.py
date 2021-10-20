@@ -1,6 +1,7 @@
 import copy
 import time
 import random
+import math
 
 class MyPlayer():
     # init the mini-max player
@@ -36,6 +37,18 @@ class MyPlayer():
             else:
                 f.write(str(move[0])+','+str(move[1]))
 
+    def countSingleLiberty(self, state, i, j):
+        count = 0
+        if i>0 and state[i-1][j] == 0:
+            count+=1
+        if i<4 and state[i+1][j] == 0:
+            count+=1
+        if j>0 and state[i][j-1] == 0:
+            count+=1
+        if j<4 and state[i][j+1] == 0:
+            count+=1
+        return count
+
     def heuristic(self, state, side):
         #start = time.time()
         player, other = 0, 0
@@ -43,15 +56,20 @@ class MyPlayer():
         for i in range(self.border_size):
             for j in range(self.border_size):
                 if state[i][j] == self.side:
-                    player += 1
-                    sum+=(player + self.count_liberty(state, i, j))
+                    #player += 1
+                    sum+=(100 + self.countSingleLiberty(state, i, j))
+                    #endanger
+                    if self.count_liberty(state, i, j) == 1:
+                        sum-=10
                     #sum+=player
                 elif state[i][j] == 3 - self.side:
-                    other += 1
-                    sum-=(other + self.count_liberty(state, i, j))
+                    #other += 1
+                    sum-=(100 + self.countSingleLiberty(state, i, j))
+                    if self.count_liberty(state, i, j) == 1:
+                        sum+=10
                     #sum-=other
         #print("heuristic takes: ", time.time() - start)
-        return sum + 2.5
+        return sum - 2.5
         
     # find dead points as a list for a given side
     def find_dead(self, state, side):
@@ -145,6 +163,7 @@ class MyPlayer():
                 # position that has a 0 is empty
                 if self.valid_check(state, prev_state, player, i, j) == True:
                     moves.append((i, j))
+        moves.append('PASS')
         return moves
 
     # mini-max algorithm return the move or moves with the max heuristic value
@@ -154,12 +173,14 @@ class MyPlayer():
         best = 0
         curr_state_copy = copy.deepcopy(self.state)
 
-        # check all nine states to get the max
+        # check all nine states to get the max + 'PASS'
         for move in self.valid_moves(self.state, self.prev_state, self.side):
             # update the next state board
             next_state = copy.deepcopy(self.state)
-            next_state[move[0]][move[1]] = self.side
-            next_state = self.remove_dead(next_state, 3-self.side)
+            
+            if move != 'PASS':
+                next_state[move[0]][move[1]] = self.side
+                next_state = self.remove_dead(next_state, 3-self.side)
 
             # get evaluation of each state
             value = self.minmax_iter(next_state, curr_state_copy, max_depth, 3-self.side, alpha, beta)
@@ -190,8 +211,9 @@ class MyPlayer():
         for move in self.valid_moves(curr_state, prev_state, side):
             # update the next board state
             next_state = copy.deepcopy(curr_state)
-            next_state[move[0]][move[1]] = side
-            next_state = self.remove_dead(next_state, 3-side)
+            if move != 'PASS':
+                next_state[move[0]][move[1]] = side
+                next_state = self.remove_dead(next_state, 3-side)
             value = self.minmax_iter(next_state, curr_state_copy, depth - 1, 3-side, alpha, beta)
 
             if side == self.side:
@@ -205,23 +227,30 @@ class MyPlayer():
             if alpha >= beta:
                     return best
         return best
+def pickCenter(actions):
+    min = 999
+    if len(actions) == 1 and 'PASS' in actions:
+        return 'PASS'
+    elif 'PASS' in actions:
+        actions.remove('PASS')
 
+    for action in actions:
+        x = action[0]
+        y = action[1]
+        distance = math.sqrt(abs(x-2)*abs(x-2)+abs(y-2)*abs(y-2))
+        if distance < min:
+            min = distance
+            result = (x,y)
+    return result
 
 if __name__ == "__main__":
     start = time.time()
     my_player = MyPlayer(5)
     my_player.read_input()
-    if len(my_player.valid_moves(my_player.state, my_player.prev_state, my_player.side)) == 25:
-        action = [(2,2)] 
-    else:
-        action = my_player.minmax(2, -1000, 1000)
+    action = my_player.minmax(2, -1000, 1000)
     print(action)
-    # if empty list, then no action, choose to pass
-    if action == []:
-        rand_action = ['PASS']
-    # else choose a random action from the list
-    else:
-        rand_action = random.choice(action)
-
+    
+    rand_action = pickCenter(action)
+    print(rand_action)
     my_player.write_output(rand_action)
     print(f'step takes: {time.time()-start}')

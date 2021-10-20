@@ -26,7 +26,7 @@ class MyPlayer():
         self.alpha = alpha
         self.gamma = gamma
         self.q_values = {}
-        with open("learning.json", 'r') as f:
+        with open("learn_table.json", 'r') as f:
             self.q_values = ujson.load(f)
         self.history_states = []
         self.initial_value = initial_value
@@ -59,7 +59,7 @@ class MyPlayer():
         self.history_states = []
         
     def save(self):
-        with open('learning.json', 'w') as json_file:
+        with open('learn_table.json', 'w') as json_file:
             json.dump(self.q_values, json_file)
 
     def getQ(self, state):
