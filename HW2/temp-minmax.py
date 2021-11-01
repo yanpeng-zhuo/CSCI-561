@@ -1,16 +1,8 @@
-'''
-    Name: Armin Bazarjani
-    Course: CSCI-561 Foundations of Artificial Intelligence
-    Date: October 4, 2020
-    
-    Homework 2: Reinforcement Learning for the Game of "Little-GO"
-'''
-import os
 import copy
+import math
 import time
-import random
 
-class MyPlayer():
+class test():
     # init the mini-max player
     def __init__(self, border_size, side=None):
         self.border_size = border_size
@@ -21,21 +13,19 @@ class MyPlayer():
 
     # read input file and store the data
     def read_input(self):
-        index = 0
         with open(self.input, 'r') as f:
-            for line in f.readlines():
-                if index == 0:
-                    self.side = int(line.strip())
-                elif index < 6:
-                    self.prev_state.append([])
-                    for i in range(5):
-                        self.prev_state[index-1].append(int(line.strip()[i]))
-                else:
-                    self.state.append([])
-                    for i in range(5):
-                        self.state[index-6].append(int(line.strip()[i]))
-                index+=1
-    
+            self.side = int(f.readline().strip())
+            for j in range(5):
+                line = f.readline().strip()
+                self.prev_state.append([])
+                for i in range(5):
+                    self.prev_state[j].append(int(line[i]))
+            for j in range(5):
+                line = f.readline().strip()
+                self.state.append([])
+                for i in range(5):
+                    self.state[j].append(int(line[i]))
+
     # function that writes output file
     def write_output(self, move):
         with open(self.output, 'w') as f:
@@ -43,32 +33,42 @@ class MyPlayer():
                 f.write(move)
             else:
                 f.write(str(move[0])+','+str(move[1]))
+    # (5*5)-1 = 24
+    def size(self, state):
+        return
+
+    def countSingleLiberty(self, state, i, j):
+        count = 0
+        if i>0 and state[i-1][j] == 0:
+            count+=1
+        if i<4 and state[i+1][j] == 0:
+            count+=1
+        if j>0 and state[i][j-1] == 0:
+            count+=1
+        if j<4 and state[i][j+1] == 0:
+            count+=1
+        return count
 
     def heuristic(self, state, side):
-        player, other = 0, 0
         sum = 0
         for i in range(self.border_size):
             for j in range(self.border_size):
                 if state[i][j] == self.side:
-                    player += 1
-                    sum+=(player + self.count_liberty(state, i, j))
+                    sum+=self.count_liberty(state, i, j)
                 elif state[i][j] == 3 - self.side:
-                    other += 1
-                    sum-=(other + self.count_liberty(state, i, j))
-        return sum if side == self else -sum
-        
+                    sum-=self.count_liberty(state, i, j)
+        return sum
+
     # find dead points as a list for a given side
     def find_dead(self, state, side):
         dead_points = []
         for i in range(self.border_size):
             for j in range(self.border_size):
-                if state[i][j] == side:
-                    if self.count_liberty(state, i, j) == 0:
-                        dead_points.append((i, j))
+                if state[i][j] == side and self.count_liberty(state, i, j) == 0:
+                    dead_points.append((i, j))
         return dead_points
 
-
-    # remove the dead_points of a given side
+    # remove the dead points of a given side
     def remove_dead(self, state, side):
         dead_points = self.find_dead(state, side)
         for point in dead_points:
@@ -79,24 +79,28 @@ class MyPlayer():
     def find_adjacent(self, state, row, col):
         state = self.remove_dead(state, (row, col))
         neighbors = []
-        if row > 0: neighbors.append((row-1, col))
-        if row < self.border_size - 1: neighbors.append((row+1, col))
-        if col > 0: neighbors.append((row, col-1))
-        if col < self.border_size - 1: neighbors.append((row, col+1))
+        if row > 0: 
+            neighbors.append((row-1, col))
+        if row < self.border_size - 1: 
+            neighbors.append((row+1, col))
+        if col > 0: 
+            neighbors.append((row, col-1))
+        if col < self.border_size - 1: 
+            neighbors.append((row, col+1))
         return neighbors
 
     # return the given point's allies as a list
     def find_adjacent_neighbors(self, state, row, col):
-        allies = list()
+        neighbors = []
         for point in self.find_adjacent(state, row, col):
             if state[point[0]][point[1]] == state[row][col]:
-                allies.append(point)
-        return allies
+                neighbors.append(point)
+        return neighbors
 
     # Using DFS to find all allies of a given point
     def find_ally_cluster(self, state, row, col):
         stack = [(row, col)]
-        ally_members = list()
+        ally_members = []
 
         while stack:
             point = stack.pop(0)
@@ -109,35 +113,30 @@ class MyPlayer():
 
     # return the count of a give point's liberty
     def count_liberty(self, state, row, col):
+        test = copy.deepcopy(state)
         count = 0
         # loop through each point in the cluster
-        for point in self.find_ally_cluster(state, row, col):
+        for point in self.find_ally_cluster(test, row, col):
             # if the point has an adjacent node with a value of 0, then the cluster has liberty
-            for neighbor in self.find_adjacent(state,  point[0], point[1]):
-                if state[neighbor[0]][neighbor[1]] == 0:
+            for neighbor in self.find_adjacent(test,  point[0], point[1]):
+                if test[neighbor[0]][neighbor[1]] == 0:
                     count += 1
-
+                    test[neighbor[0]][neighbor[1]] = 3 - state[row][col]
         return count
 
     # check if KO or not
     def if_ko(self, prev_state, state):
-        for i in range(self.border_size):
-            for j in range(self.border_size):
-                if state[i][j] != prev_state[i][j]:
-                    return False
-        return True
+        return state == prev_state
 
     def valid_check(self, state, prev_state, player, row, col):
         if state[row][col] != 0:
             return False
         test = copy.deepcopy(state)
+        
         test[row][col] = player
-        dead_pieces = self.find_dead(test, 3 - player)
         test = self.remove_dead(test, 3 - player)
-        # find ally cluster of position
-        # if cluster has liberty, add position to valid_moves list
-        if self.count_liberty(test, row, col) >= 1 and not (dead_pieces and self.if_ko(prev_state, test)):
-            # add point to valid moves list
+        # valid: has liberty and not violate ko rules
+        if self.count_liberty(test, row, col) >= 1 and not self.if_ko(prev_state, test):
             return True
 
     # return a list of valid moves given current gameboard position
@@ -147,111 +146,97 @@ class MyPlayer():
         for i in range(self.border_size):
             for j in range(self.border_size):
                 # position that has a 0 is empty
-                if self.valid_check(state, prev_state, player, i, j) == True:
+                if self.valid_check(state, prev_state, player, i, j):
                     moves.append((i, j))
+        moves.append('PASS')
         return moves
 
     # mini-max algorithm return the move or moves with the max heuristic value
+    # top level: find max of children's heuristic value
     def minmax(self, max_depth, alpha, beta):
-        # intialize helper variables
         moves = []
         best = 0
         curr_state_copy = copy.deepcopy(self.state)
 
-        # check all nine states to get the max
+        # check all nine states to get the max + 'PASS'
         for move in self.valid_moves(self.state, self.prev_state, self.side):
             # update the next state board
             next_state = copy.deepcopy(self.state)
-            next_state[move[0]][move[1]] = self.side
-            next_state = self.remove_dead(next_state, 3-self.side)
+            
+            if move != 'PASS':
+                next_state[move[0]][move[1]] = self.side
+                next_state = self.remove_dead(next_state, 3-self.side)
 
             # get evaluation of each state
-            curr_score = -self.minmax_iter(next_state, curr_state_copy, max_depth,
-                                     alpha, beta, 3-self.side)
+            value = self.minmax_iter(next_state, curr_state_copy, max_depth, 3-self.side, alpha, beta)
             
             # updating alpha cause it's a max level
-            if curr_score > best or not moves:
-                best = curr_score
-                alpha = best
+            if value > best or not moves:
+                best = value
                 moves = [move]
+                alpha = best
             # in case of more than one best moves
-            elif curr_score == best:
+            elif value == best:
                 moves.append(move)
         return moves
 
     # the minimax function that iterates through the depth of branches
-    def minmax_iter(self, curr_state, prev_state, max_depth, alpha, beta, side):
-        heur_val = self.heuristic(curr_state, side)
-        if max_depth == 0:
-            return heur_val
-        best = heur_val
+    def minmax_iter(self, curr_state, prev_state, depth, side, alpha, beta):
+        # leaf level: return heuristic value
+        if depth == 0:
+            return self.heuristic(curr_state, side)
+        # self turn: get max of children
+        # opponent turn: get min of children
+        if side == self.side:
+            best = -100000
+        else:
+            best = 100000
         curr_state_copy = copy.deepcopy(curr_state)
         # iterate through all valid moves
         for move in self.valid_moves(curr_state, prev_state, side):
             # update the next board state
             next_state = copy.deepcopy(curr_state)
-            next_state[move[0]][move[1]] = side
-            next_state = self.remove_dead(next_state, 3-side)
+            if move != 'PASS':
+                next_state[move[0]][move[1]] = side
+                next_state = self.remove_dead(next_state, 3-side)
+            value = self.minmax_iter(next_state, curr_state_copy, depth - 1, 3-side, alpha, beta)
 
-            # get heuristic of next state
-            curr_score = -self.minmax_iter(next_state, curr_state_copy, max_depth - 1,
-                                     alpha, beta, 3-side)
-
-            # check if new result is better than current best
-            if curr_score > best:
-                best = curr_score
-            # update the score
-            new_score = -1 * best
-
-            # Alpha beta pruning
-            # if we are looking at the minimizing player (opponent)
-            if side == 3-self.side:
-                player = new_score
-                # check if prune
-                if player < alpha:
-                    return best
-                # if we dont prune, update beta
-                if best > beta:
-                    beta = best
-            # if we are looking at the maximizing player (ourselves)
-            elif side == self.side:
-                opponent = new_score
-                # check prune
-                if opponent < beta:
-                    return best
-                # if we dont prune, update alpha
-                if best > alpha:
-                    alpha = best
-
+            if side == self.side:
+                best = max(best, value)
+                alpha = max(best, alpha)
+            else:
+                best = min(best, value)
+                beta = min(best, beta)
+            if alpha >= beta:
+                return best
         return best
 
+def pickCenter(actions):
+    min = 999
+    if len(actions) == 1 and 'PASS' in actions:
+        return 'PASS'
+    elif 'PASS' in actions:
+        actions.remove('PASS')
+
+    for action in actions:
+        x = action[0]
+        y = action[1]
+        distance = math.sqrt(abs(x-2)*abs(x-2)+abs(y-2)*abs(y-2))
+        if distance < min:
+            min = distance
+            result = (x,y)
+    return result
 
 if __name__ == "__main__":
     start = time.time()
-    my_player = MyPlayer(5)
+    my_player = test(5)
+    
     my_player.read_input()
-
-    checker = 0
-    checker_bool = False
-    for i in range(5):
-        for j in range(5):
-            if my_player.state[i][j] != 0:
-                if i == 2 and j == 2:
-                    checker_bool = True
-                checker += 1
-
-    if (checker == 0 and my_player.side == 1) or (checker == 1 and my_player.side == 2 and checker_bool is False):
-        action = [(2, 2)]
-    else:
-        action = my_player.minmax(2, -1000, -1000)
-        print(action)
-    # if empty list, then no action, choose to pass
-    if action == []:
-        rand_action = ['PASS']
-    # else choose a random action from the list
-    else:
-        rand_action = random.choice(action)
-
+    print(my_player.state)
+    #print(my_player.remove_dead([[2,2,1,1,2],[0,1,1,2,2],[1,0,1,2,2],[1,1,1,1,1],[0,1,2,2,0]], 2))
+    action = my_player.minmax(1, -1000, 1000)
+    print(action)
+    rand_action = pickCenter(action)
+    print(rand_action)
     my_player.write_output(rand_action)
-    end = time.time()
-    print(f'total time of evaluation: {end-start}')
+    print(f'step takes: {time.time()-start}')

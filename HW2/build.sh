@@ -34,7 +34,7 @@ fi
 echo ""
 
 prefix="./"
-ta_agent=("random_player") # 1 TA players
+ta_agent=("temp-minmax") # 1 TA players
 surfix=".py"
 
 # play funcion
@@ -62,7 +62,7 @@ play()
         eval "$1" >&2
         let moves+=1
 
-        python3 $prefix/host.py -m $moves >&2
+        python3 $prefix/host.py -m $moves -v True >&2
         rst=$?
 
         if [[ "$rst" != "0" ]]; then
@@ -77,7 +77,7 @@ play()
         eval "$2" >&2
         let moves+=1
 
-        python3 $prefix/host.py -m $moves >&2
+        python3 $prefix/host.py -m $moves -v True >&2
         rst=$?
 
         if [[ "$rst" != "0" ]]; then
@@ -107,19 +107,19 @@ do
     white_tie=0
     for (( round=1; round<=$play_time; round+=2 )) 
     do
-        # TA takes Black
-        # echo "=====Round $round====="
-        # echo Black:TA White:You 
-        # winner=$(play "$ta_cmd" "$cmd")
-        # if [[ "$winner" = "2" ]]; then
-        #     echo 'White(You) win!'
-        #     let white_win_time+=1
-        # elif [[ "$winner" = "0" ]]; then
-        #     echo Tie.
-        #     let white_tie+=1
-        # else
-        #     echo 'White(You) lose.'
-        # fi
+        TA takes Black
+        echo "=====Round $round====="
+        echo Black:TA White:You 
+        winner=$(play "$ta_cmd" "$cmd")
+        if [[ "$winner" = "2" ]]; then
+            echo 'White(You) win!'
+            let white_win_time+=1
+        elif [[ "$winner" = "0" ]]; then
+            echo Tie.
+            let white_tie+=1
+        else
+            echo 'White(You) lose.'
+        fi
 
         # Student takes Black
         echo "=====Round $((round+1))====="
@@ -139,7 +139,7 @@ do
 
     echo =====Summary=====  
     echo "You play as Black Player | Win: $black_win_time | Lose: $((play_time/2-black_win_time-black_tie)) | Tie: $black_tie"
-    # echo "You play as White Player | Win: $white_win_time | Lose: $((play_time/2-white_win_time-black_tie)) | Tie: $white_tie"
+    echo "You play as White Player | Win: $white_win_time | Lose: $((play_time/2-white_win_time-black_tie)) | Tie: $white_tie"
 done
 
 if [ -f "input.txt" ]; then
